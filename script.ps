@@ -1,0 +1,59 @@
+# Powershell script to create  bulk user upload with a provided CSV file. 
+# The OUs need to be existant prior to creation else the script will not create the objects 
+# Attachment file needs to be renamed to csv and path need to be updated. 
+# Base Author - Vikram Bedi  
+# vikram.bedi.it@gmail.com  
+# Heavily modified for ITAS project, by Will Membery
+ 
+#Powershell v2.0 
+#v1.1 - Modified Script
+ 
+#Import the Active Directory Module 
+Import-module activedirectory  
+ 
+#Import the list from the user, and add the headers
+$Users = Import-Csv -Path C:\Users\vbedi\Desktop\Users.csv | ConvertFrom-Csv -Header "Firstname","Lastname"
+
+# Starting/Declaring the counting variables
+$UserCount = 0
+$UserGroup = 1
+
+# Create the OU's
+New-ADOrganizationalUnit -Name "Group1"
+New-ADOrganizationalUnit -Name "Group2"
+New-ADOrganizationalUnit -Name "Group3"
+New-ADOrganizationalUnit -Name "Group4"
+New-ADOrganizationalUnit -Name "Group5"
+New-ADOrganizationalUnit -Name "Group6"
+
+foreach ($User in $Users)             
+{   
+    # Increment the UserCount variable, so the first user created is 1
+    $UserCount++ 
+
+    # Increment the OU Group variable, on counts of 50
+    if ($UserCount -eq 51 -OR $UserCount -eq 101 -OR $UserCount -eq 151 -OR $UserCount -eq 201 -OR $UserCount -eq 251) {
+      $UserGroup++
+    }
+
+    # Skip the user creation if $Firstname or $Lastname are empty
+    if (!$Firstname -OR !$Lastname) { 
+        Write-Host "Invalid name detected, skipping entry number " $Usercount
+        Continue
+    }
+
+    # Various field and variable manipulation to slot into the new-aduser command       
+    $UserFirstname = $User.Firstname 
+    $UserLastname = $User.Lastname  
+    $UserFirstIntial = $UserFirstname.Substring(0,1).toLower()
+    $Displayname =  $UserFirstIntial + $User.Lastname                  
+    $OU = "Group" + $UserGroup        
+    $UPN = $UserFirstname.Substring(0,1) + $User.Lastname + "@" 
+
+    $Password = $User.Password 
+         
+    #Creation of the account with the requested formatting. 
+    New-ADUser -Name "$Displayname" -DisplayName "$Displayname" -GivenName "$UserFirstname" -Surname "$UserLastname" -Enabled $true -Path "$OU" -ChangePasswordAtLogon $True –PasswordNeverExpires $false -server server.domain.local      
+
+    Write-Host "User" $Displayname "for" $UserFistname " " $UserLastname "created"          
+}
